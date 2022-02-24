@@ -1,5 +1,4 @@
 import sys
-import math
 import airsim
 import time
 from scipy.spatial.transform import Rotation
