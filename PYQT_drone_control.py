@@ -1,6 +1,5 @@
 import sys
 import airsim
-import time
 from scipy.spatial.transform import Rotation
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
 
@@ -155,7 +154,6 @@ class DroneControlApp:
 
         # rotate to new yaw
         print("Rotating Left!")
-        time.sleep(10)
         self.client.rotateToYawAsync(z_e).join()
 
     def rotate_right_clicked(self):
@@ -181,7 +179,6 @@ class DroneControlApp:
 
         # rotate to new yaw
         print("Rotating Right!")
-        time.sleep(10)
         self.client.rotateToYawAsync(z_e).join()
 
     def fwd_clicked(self):
