@@ -1,3 +1,4 @@
+import math
 import sys
 import airsim
 from scipy.spatial.transform import Rotation
@@ -87,6 +88,27 @@ class DroneControlApp:
         self.widget.show()
         sys.exit(self.app.exec_())
 
+    def get_yaw(self):
+        # get current state as quaternion
+        state = self.client.getMultirotorState()
+
+        # extract components
+        w = state.kinematics_estimated.orientation.w_val
+        x = state.kinematics_estimated.orientation.x_val
+        y = state.kinematics_estimated.orientation.y_val
+        z = state.kinematics_estimated.orientation.z_val
+
+        # create rotation object
+        rot = Rotation.from_quat([x, y, z, w])
+
+        # convert to euler angles
+        res = rot.as_euler("xyz", degrees=True)
+
+        # extract yaw
+        [_, _, z_e] = res
+
+        return z_e
+
     def up_clicked(self):
         # get state and increment
         state = self.client.getMultirotorState()
@@ -110,45 +132,50 @@ class DroneControlApp:
         self.client.moveToPositionAsync(old_x, old_y, new_z, self.travel_speed).join()
 
     def left_clicked(self):
+        # get current yaw
+        z_e = self.get_yaw()
+
+        # convert to degrees
+        yaw_rad = z_e*(math.pi/180)
+
+        # get x and y components of motion
+        x_comp = math.sin(yaw_rad)*self.inc_left_right
+        y_comp = math.cos(yaw_rad)*self.inc_left_right
+
         # get state and increment
         state = self.client.getMultirotorState()
-        old_x = state.kinematics_estimated.position.x_val
-        new_y = state.kinematics_estimated.position.y_val - self.inc_left_right
+        new_x = state.kinematics_estimated.position.x_val + x_comp
+        new_y = state.kinematics_estimated.position.y_val - y_comp
         old_z = state.kinematics_estimated.position.z_val
 
         #  move to new state
         print("Moving Left!")
-        self.client.moveToPositionAsync(old_x, new_y, old_z, self.travel_speed).join()
+        self.client.moveToPositionAsync(new_x, new_y, old_z, self.travel_speed).join()
 
     def right_clicked(self):
+        # get current yaw
+        z_e = self.get_yaw()
+
+        # convert to degrees
+        yaw_rad = z_e * (math.pi / 180)
+
+        # get x and y components of motion
+        x_comp = math.sin(yaw_rad) * self.inc_left_right
+        y_comp = math.cos(yaw_rad) * self.inc_left_right
+
         # get state and increment
         state = self.client.getMultirotorState()
-        old_x = state.kinematics_estimated.position.x_val
-        new_y = state.kinematics_estimated.position.y_val + self.inc_left_right
+        new_x = state.kinematics_estimated.position.x_val - x_comp
+        new_y = state.kinematics_estimated.position.y_val + y_comp
         old_z = state.kinematics_estimated.position.z_val
 
         #  move to new state
         print("Moving Right!")
-        self.client.moveToPositionAsync(old_x, new_y, old_z, self.travel_speed).join()
+        self.client.moveToPositionAsync(new_x, new_y, old_z, self.travel_speed).join()
 
     def rotate_left_clicked(self):
-        # get current state as quaternion
-        state = self.client.getMultirotorState()
-
-        # extract components
-        w = state.kinematics_estimated.orientation.w_val
-        x = state.kinematics_estimated.orientation.x_val
-        y = state.kinematics_estimated.orientation.y_val
-        z = state.kinematics_estimated.orientation.z_val
-
-        # create rotation object
-        rot = Rotation.from_quat([x,y,z,w])
-
-        # convert to euler angles
-        res = rot.as_euler("xyz", degrees=True)
-
-        # extract yaw
-        [x_e, y_e, z_e] = res
+        # get current yaw
+        z_e = self.get_yaw()
 
         z_e -= self.inc_left_right_theta
 
@@ -157,23 +184,8 @@ class DroneControlApp:
         self.client.rotateToYawAsync(z_e).join()
 
     def rotate_right_clicked(self):
-        # get current state as quaternion
-        state = self.client.getMultirotorState()
-
-        # extract components
-        w = state.kinematics_estimated.orientation.w_val
-        x = state.kinematics_estimated.orientation.x_val
-        y = state.kinematics_estimated.orientation.y_val
-        z = state.kinematics_estimated.orientation.z_val
-
-        # create rotation object
-        rot = Rotation.from_quat([x, y, z, w])
-
-        # convert to euler angles
-        res = rot.as_euler("xyz", degrees=True)
-
-        # extract yaw
-        [x_e, y_e, z_e] = res
+        # get current yaw
+        z_e = self.get_yaw()
 
         z_e += self.inc_left_right_theta
 
@@ -182,26 +194,46 @@ class DroneControlApp:
         self.client.rotateToYawAsync(z_e).join()
 
     def fwd_clicked(self):
+        # get current yaw
+        z_e = self.get_yaw()
+
+        # convert to degrees
+        yaw_rad = z_e * (math.pi / 180)
+
+        # get x and y components of motion
+        x_comp = math.cos(yaw_rad) * self.inc_fwd_rev
+        y_comp = math.sin(yaw_rad) * self.inc_fwd_rev
+
         # get state and increment
         state = self.client.getMultirotorState()
-        new_x = state.kinematics_estimated.position.x_val + self.inc_fwd_rev
-        old_y = state.kinematics_estimated.position.y_val
+        new_x = state.kinematics_estimated.position.x_val + x_comp
+        new_y = state.kinematics_estimated.position.y_val + y_comp
         old_z = state.kinematics_estimated.position.z_val
 
         #  move to new state
         print("Moving Forward!")
-        self.client.moveToPositionAsync(new_x, old_y, old_z, self.travel_speed).join()
+        self.client.moveToPositionAsync(new_x, new_y, old_z, self.travel_speed).join()
 
     def rev_clicked(self):
+        # get current yaw
+        z_e = self.get_yaw()
+
+        # convert to degrees
+        yaw_rad = z_e * (math.pi / 180)
+
+        # get x and y components of motion
+        x_comp = math.cos(yaw_rad) * self.inc_fwd_rev
+        y_comp = math.sin(yaw_rad) * self.inc_fwd_rev
+
         # get state and increment
         state = self.client.getMultirotorState()
-        new_x = state.kinematics_estimated.position.x_val - self.inc_fwd_rev
-        old_y = state.kinematics_estimated.position.y_val
+        new_x = state.kinematics_estimated.position.x_val - x_comp
+        new_y = state.kinematics_estimated.position.y_val - y_comp
         old_z = state.kinematics_estimated.position.z_val
 
         #  move to new state
         print("Moving Backwards!")
-        self.client.moveToPositionAsync(new_x, old_y, old_z, self.travel_speed).join()
+        self.client.moveToPositionAsync(new_x, new_y, old_z, self.travel_speed).join()
 
     def arm_clicked(self):
         # arm drone
